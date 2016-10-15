@@ -28,7 +28,7 @@ class SimpleReply(mongoengine.Document):
     response_type = mongoengine.StringField(
         choices=RESPONSE_TYPES, default="text", required=True)
     mime_type = mongoengine.StringField(required=False)
-    filen_ame = mongoengine.StringField(required=False)
+    file_name = mongoengine.StringField(required=False)
     caption = mongoengine.StringField(required=False)
     parse_mode = mongoengine.StringField(required=False)
     user_id = mongoengine.LongField(required=True)
