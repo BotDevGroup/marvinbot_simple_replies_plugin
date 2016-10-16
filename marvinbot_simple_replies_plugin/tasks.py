@@ -3,12 +3,14 @@ from marvinbot.utils import localized_date
 from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
 from marvinbot_simple_replies_plugin.models import SimpleReply
 import logging
+import threading
 import re
 import json
 
 log = logging.getLogger(__name__)
 adapter = None
 replies = []
+lock = threading.Lock()
 
 
 def get_message_type(message):
@@ -31,6 +33,25 @@ def get_message_type(message):
     elif message.reply_to_message.text:
         result = 'text'
     return result
+
+
+def fetch_replies():
+    global replies
+    with lock:
+        replies = SimpleReply.all()
+        log.info("Fetched {} replies.".format(len(replies)))
+
+        for reply in replies:
+            reply.pattern = re.compile(reply.pattern, flags=re.IGNORECASE) if reply.pattern_type in ['regexp'] else reply.pattern
+
+
+def add_reply(**kwargs):
+    try:
+        reply = SimpleReply(**kwargs)
+        reply.save()
+        return True
+    except:
+        return False
 
 
 def remove_reply(pattern):
@@ -117,16 +138,19 @@ def on_reply_command(update, *args, **kwargs):
 
     reply = SimpleReply.by_pattern(pattern)
     if not reply:
-        reply = SimpleReply(user_id=user_id, username=username,
-                            pattern=pattern, pattern_type=pattern_type,
-                            response=response, response_type=response_type,
-                            caption=caption, parse_mode=parse_mode,
-                            file_name=file_name, mime_type=mime_type,
-                            date_added=date_added, date_modified=date_modified)
-        reply.save()
-        log.info(reply)
-        adapter.bot.sendMessage(
-            chat_id=update.message.chat_id, text="✅ Reply added.")
+        result = add_reply(user_id=user_id, username=username, pattern=pattern,
+                           pattern_type=pattern_type, response=response,
+                           response_type=response_type, caption=caption,
+                           parse_mode=parse_mode, file_name=file_name,
+                           mime_type=mime_type, date_added=date_added,
+                           date_modified=date_modified)
+        if result:
+            adapter.bot.sendMessage(
+                chat_id=update.message.chat_id, text="✅ Reply added.")
+            fetch_replies()
+        else:
+            adapter.bot.sendMessage(chat_id=update.message.chat_id,
+                                    text="❌ Unable to add reply.")
     else:
         adapter.bot.sendMessage(chat_id=update.message.chat_id,
                                 text="❌ This pattern already exists.")
