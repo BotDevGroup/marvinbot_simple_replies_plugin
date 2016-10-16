@@ -115,7 +115,7 @@ def on_reply_command(update, *args, **kwargs):
         mime_type = 'image/jpeg'
         response = update.message.reply_to_message.photo[-1].file_id
         file_name = "{}.jpg".format(update.message.reply_to_message.photo[-1].file_id)
-        caption = update.message.caption
+        caption = update.message.reply_to_message.caption
     elif response_type == 'location':
         response = update.message.reply_to_message.location.to_json()
     elif response_type == 'contact':
