@@ -83,6 +83,7 @@ def on_reply_command(update, *args, **kwargs):
             adapter.bot.sendMessage(
                 chat_id=update.message.chat_id,
                 text="🚮 1 reply removed.")
+            fetch_replies()
         else:
             adapter.bot.sendMessage(
                 chat_id=update.message.chat_id,
@@ -131,7 +132,7 @@ def on_reply_command(update, *args, **kwargs):
     date_added = localized_date()
     date_modified = localized_date()
 
-    if not len(pattern) > 0:
+    if len(pattern) == 0:
         adapter.bot.sendMessage(
             chat_id=update.message.chat_id, text="❌ Reply pattern is too short.")
         return
