@@ -56,10 +56,8 @@ def add_reply(**kwargs):
 def remove_reply(pattern):
     reply = SimpleReply.by_pattern(pattern)
     if reply and reply.date_deleted is None:
-        # TODO implement soft delete
-        # reply.date_deleted = localized_date()
-        # reply.save()
-        reply.delete()
+        reply.date_deleted = localized_date()
+        reply.save()
         return True
     return False
 

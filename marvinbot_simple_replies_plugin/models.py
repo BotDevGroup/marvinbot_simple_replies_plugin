@@ -37,7 +37,6 @@ class SimpleReply(mongoengine.Document):
 
     date_added = mongoengine.DateTimeField(default=localized_date)
     date_modified = mongoengine.DateTimeField(default=localized_date)
-    # TODO implement soft deletable trait as decorator
     date_deleted = mongoengine.DateTimeField(required=False, null=True)
 
     @classmethod
@@ -57,8 +56,8 @@ class SimpleReply(mongoengine.Document):
     @classmethod
     def all(cls):
         try:
-            return cls.objects()
-#            return cls.objects(date_deleted__isnull=True)
+            # return cls.objects()
+            return cls.objects(date_deleted=None)
         except:
             return None
 
