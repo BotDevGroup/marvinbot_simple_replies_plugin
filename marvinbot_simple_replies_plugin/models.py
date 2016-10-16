@@ -19,7 +19,6 @@ RESPONSE_TYPES = (('text', 'Text'),
                   ('contact', 'Contact'))
 
 
-# Plugin specific model, so as not to pollute the real users table
 class SimpleReply(mongoengine.Document):
     id = mongoengine.SequenceField(primary_key=True)
     pattern = mongoengine.StringField(unique=True)
@@ -56,7 +55,6 @@ class SimpleReply(mongoengine.Document):
     @classmethod
     def all(cls):
         try:
-            # return cls.objects()
             return cls.objects(date_deleted=None)
         except:
             return None
