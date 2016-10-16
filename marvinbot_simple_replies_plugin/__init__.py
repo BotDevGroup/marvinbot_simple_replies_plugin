@@ -1,1 +1,3 @@
-from .base import configure
+from .base import SimpleRepliesPlugin
+
+plugin = SimpleRepliesPlugin()
