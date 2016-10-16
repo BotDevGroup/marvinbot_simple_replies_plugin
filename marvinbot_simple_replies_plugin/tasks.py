@@ -1,10 +1,13 @@
 from marvinbot.utils import get_message
 from marvinbot.handlers import Filters, CommandHandler, MessageHandler
 from celery.utils.log import get_task_logger
+from telegram import Contact, Location
 from marvinbot.utils import localized_date
+from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
 from marvinbot_simple_replies_plugin.models import SimpleReply
 from celery import task
 import re
+import json
 
 log = get_task_logger(__name__)
 adapter = None
@@ -24,6 +27,10 @@ def get_message_type(message):
             result = 'gif'
         else:
             result = 'file'
+    elif message.reply_to_message.contact:
+        result = 'contact'
+    elif message.reply_to_message.location:
+        result = 'location'
     elif message.reply_to_message.text:
         result = 'text'
     return result
@@ -79,7 +86,11 @@ def on_reply_command(update, *args, **kwargs):
             text="❌ Media type is not supported")
         return
 
-    if response_type in ('sticker', 'voice', 'gif', 'file'):
+    if response_type == 'sticker':
+        response = update.message.reply_to_message.sticker.file_id
+    elif response_type == 'voice':
+        response = update.message.reply_to_message.voice.file_id
+    elif response_type in ('gif', 'file'):
         mime_type = update.message.reply_to_message.document.mime_type
         response = update.message.reply_to_message.document.file_id
         file_name = update.message.reply_to_message.document.file_name
@@ -88,6 +99,10 @@ def on_reply_command(update, *args, **kwargs):
         response = update.message.reply_to_message.photo[-1].file_id
         file_name = "{}.jpg".format(update.message.reply_to_message.photo[-1].file_id)
         caption = update.message.caption
+    elif response_type == 'location':
+        response = update.message.reply_to_message.location.to_json()
+    elif response_type == 'contact':
+        response = update.message.reply_to_message.contact.to_json()
     else:
         parse_mode = kwargs.get('mode')
         if parse_mode not in ('HTML', 'Markdown'):
@@ -121,18 +136,107 @@ def on_reply_command(update, *args, **kwargs):
                                 text="❌ This pattern already exists.")
 
 
+def handle_text_response(update, reply):
+    adapter.bot.sendMessage(chat_id=update.message.chat_id,
+                            text=reply.response)
+
+
+def handle_photo_response(update, reply):
+    adapter.bot.sendPhoto(chat_id=update.message.chat_id, photo=reply.response, caption=reply.caption)
+
+
+def handle_sticker_response(update, reply):
+    adapter.bot.sendSticker(chat_id=update.message.chat_id, sticker=reply.response)
+
+
+def handle_gif_response(update, reply):
+    adapter.bot.sendDocument(chat_id=update.message.chat_id, document=reply.response)
+
+
+def handle_audio_response(update, reply):
+    adapter.bot.sendAudio(chat_id=update.message.chat_id, audio=reply.response)
+
+
+def handle_video_response(update, reply):
+    adapter.bot.sendVideo(chat_id=update.message.chat_id, video=reply.response)
+
+
+def handle_file_response(update, reply):
+    adapter.bot.sendDocument(chat_id=update.message.chat_id, document=reply.response)
+
+
+def handle_voice_response(update, reply):
+    adapter.bot.sendVoice(chat_id=update.message.chat_id, voice=reply.response)
+
+
+def handle_contact_response(update, reply):
+    data = json.loads(reply.response)
+    adapter.bot.sendContact(chat_id=update.message.chat_id, **data)
+
+
+def handle_location_response(update, reply):
+    data = json.loads(reply.response)
+    adapter.bot.sendLocation(chat_id=update.message.chat_id, **data)
+
+
+def handle_unknown_response(update, reply):
+    adapter.bot.sendMessage(chat_id=update.message.chat_id,
+                            text="❌ Invalid response type '{response_type}' for '{pattern}'".format(
+                                pattern=reply.pattern, response_type=reply.response_type))
+
+
+response_handlers = {
+    "text": handle_text_response,
+    "photo": handle_photo_response,
+    "sticker": handle_sticker_response,
+    "gif": handle_gif_response,
+    "audio": handle_audio_response,
+    "video": handle_video_response,
+    "voice": handle_voice_response,
+    "file": handle_file_response,
+    "contact": handle_contact_response,
+    "location": handle_location_response,
+}
+
+
+def find_match(text, callback):
+    global replies
+    with lock:
+        for reply in replies:
+            matches = (reply.pattern_type == 'exact' and reply.pattern == text) \
+                or (reply.pattern_type == 'regexp' and reply.pattern.match(text)) \
+                or (reply.pattern_type == 'begins_with' and text.startswith(reply.pattern)) \
+                or (reply.pattern_type == 'ends_with' and text.endswith(reply.pattern)) \
+                or (reply.pattern_type == 'contains' and reply.pattern in text)
+            if matches:
+                callback(text, reply)
+
+
+def on_text(update):
+    global response_handlers
+    log.info('Text message caught')
+    text = update.message.text
+
+    if len(text) == 0:
+        log.info('Ignoring text message. Message length is zero')
+        return
+
+    def on_match(text, reply):
+        response_handler = response_handlers[reply.response_type] if reply.response_type in response_handlers else handle_unknown_response
+        response_handler(update, reply)
+
+    find_match(text, on_match)
+
+
 def setup(new_adapter):
     global adapter, replies
     adapter = new_adapter
 
-    replies = SimpleReply.all()
-    log.info("Fetched {} replies.".format(len(replies)))
-
-    for reply in replies:
-        reply.pattern = re.compile(reply.pattern, flags=re.IGNORECASE) if reply.pattern_type in ['regexp'] else reply.pattern
+    fetch_replies()
 
     adapter.add_handler(CommandHandler('reply', on_reply_command, command_description='Allows the user to add or remove replies.')
                         .add_argument('--remove', help='Remove reply', action='store_true')
                         .add_argument('--type', help='Pattern type', default='exact')
                         .add_argument('--mode', help='Parse mode (e.g. Markdown)', default='Markdown')
                         .add_argument('pattern', nargs='*', help='Words or pattern that trigger this reply'))
+    adapter.add_handler(MessageHandler([CommonFilters.text], on_text), priority=90)

@@ -14,7 +14,9 @@ RESPONSE_TYPES = (('text', 'Text'),
                   ('audio', 'Audio'),
                   ('video', 'Video'),
                   ('file', 'File'),
-                  ('voice', 'Voice note'))
+                  ('voice', 'Voice note'),
+                  ('location', 'Location'),
+                  ('contact', 'Contact'))
 
 
 # Plugin specific model, so as not to pollute the real users table
