@@ -1,15 +1,12 @@
-from marvinbot.utils import get_message
-from marvinbot.handlers import Filters, CommandHandler, MessageHandler
-from celery.utils.log import get_task_logger
 from telegram import Contact, Location
 from marvinbot.utils import localized_date
 from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
 from marvinbot_simple_replies_plugin.models import SimpleReply
-from celery import task
+import logging
 import re
 import json
 
-log = get_task_logger(__name__)
+log = logging.getLogger(__name__)
 adapter = None
 replies = []
 
@@ -47,7 +44,6 @@ def remove_reply(pattern):
     return False
 
 
-@task
 def on_reply_command(update, *args, **kwargs):
     log.info('Reply command caught')
 
