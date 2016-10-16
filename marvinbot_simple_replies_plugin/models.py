@@ -1,5 +1,4 @@
 import mongoengine
-from datetime import datetime
 from marvinbot.utils import localized_date
 
 PATTERN_TYPES = (('exact', 'Exact match'),
@@ -34,8 +33,9 @@ class SimpleReply(mongoengine.Document):
     user_id = mongoengine.LongField(required=True)
     username = mongoengine.StringField(required=True)
 
-    date_added = mongoengine.DateTimeField(default=datetime.now)
-    date_modified = mongoengine.DateTimeField(default=datetime.now)
+    date_added = mongoengine.DateTimeField(default=localized_date)
+    date_modified = mongoengine.DateTimeField(default=localized_date)
+    # TODO implement soft deletable trait as decorator
     date_deleted = mongoengine.DateTimeField(required=False, null=True)
 
     @classmethod

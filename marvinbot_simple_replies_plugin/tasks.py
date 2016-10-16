@@ -1,9 +1,9 @@
 from marvinbot.utils import get_message
 from marvinbot.handlers import Filters, CommandHandler, MessageHandler
 from celery.utils.log import get_task_logger
+from marvinbot.utils import localized_date
 from marvinbot_simple_replies_plugin.models import SimpleReply
 from celery import task
-from datetime import datetime
 import re
 
 log = get_task_logger(__name__)
@@ -32,8 +32,10 @@ def get_message_type(message):
 def remove_reply(pattern):
     reply = SimpleReply.by_pattern(pattern)
     if reply and reply.date_deleted is None:
-        reply.date_deleted = datetime.now()
-        reply.save()
+        # TODO implement soft delete
+        # reply.date_deleted = localized_date()
+        # reply.save()
+        reply.delete()
         return True
     return False
 
@@ -94,8 +96,8 @@ def on_reply_command(update, *args, **kwargs):
 
     user_id = update.message.from_user.id
     username = update.message.from_user.username
-    date_added = datetime.now()
-    date_modified = datetime.now()
+    date_added = localized_date()
+    date_modified = localized_date()
 
     if not len(pattern) > 0:
         adapter.bot.sendMessage(
