@@ -14,22 +14,22 @@ lock = threading.Lock()
 
 def get_message_type(message):
     result = None
-    if len(message.reply_to_message.photo) > 0:
+    if len(message.photo) > 0:
         result = 'photo'
-    elif message.reply_to_message.sticker:
+    elif message.sticker:
         result = 'sticker'
-    elif message.reply_to_message.voice:
+    elif message.voice:
         result = 'voice'
-    elif message.reply_to_message.document:
-        if message.reply_to_message.document.mime_type == 'video/mp4':
+    elif message.document:
+        if message.document.mime_type == 'video/mp4':
             result = 'gif'
         else:
             result = 'file'
-    elif message.reply_to_message.contact:
+    elif message.contact:
         result = 'contact'
-    elif message.reply_to_message.location:
+    elif message.location:
         result = 'location'
-    elif message.reply_to_message.text:
+    elif message.text:
         result = 'text'
     return result
 
@@ -66,7 +66,7 @@ def remove_reply(pattern):
 
 def on_reply_command(update, *args, **kwargs):
     log.info('Reply command caught')
-
+    message = get_message(update)
     remove = kwargs.get('remove')
 
     pattern = " ".join(kwargs.get('pattern'))
@@ -81,60 +81,60 @@ def on_reply_command(update, *args, **kwargs):
     if remove:
         if remove_reply(pattern):
             adapter.bot.sendMessage(
-                chat_id=update.message.chat_id,
+                chat_id=message.chat_id,
                 text="🚮 1 reply removed.")
             fetch_replies()
         else:
             adapter.bot.sendMessage(
-                chat_id=update.message.chat_id,
+                chat_id=message.chat_id,
                 text="❌ No such reply.")
         return
 
-    if not update.message.reply_to_message:
+    if not message.reply_to_message:
         adapter.bot.sendMessage(
-            chat_id=update.message.chat_id,
+            chat_id=message.chat_id,
             text="❌ When adding new replies, use this command while replying.")
         return
 
-    response_type = get_message_type(update.message)
+    response_type = get_message_type(message.reply_to_message)
 
     if response_type is None:
         adapter.bot.sendMessage(
-            chat_id=update.message.chat_id,
+            chat_id=message.chat_id,
             text="❌ Media type is not supported")
         return
 
     if response_type == 'sticker':
-        response = update.message.reply_to_message.sticker.file_id
+        response = message.reply_to_message.sticker.file_id
     elif response_type == 'voice':
-        response = update.message.reply_to_message.voice.file_id
+        response = message.reply_to_message.voice.file_id
     elif response_type in ('gif', 'file'):
-        mime_type = update.message.reply_to_message.document.mime_type
-        response = update.message.reply_to_message.document.file_id
-        file_name = update.message.reply_to_message.document.file_name
+        mime_type = message.reply_to_message.document.mime_type
+        response = message.reply_to_message.document.file_id
+        file_name = message.reply_to_message.document.file_name
     elif response_type == 'photo':
         mime_type = 'image/jpeg'
-        response = update.message.reply_to_message.photo[-1].file_id
-        file_name = "{}.jpg".format(update.message.reply_to_message.photo[-1].file_id)
-        caption = update.message.reply_to_message.caption
+        response = message.reply_to_message.photo[-1].file_id
+        file_name = "{}.jpg".format(message.reply_to_message.photo[-1].file_id)
+        caption = message.reply_to_message.caption
     elif response_type == 'location':
-        response = update.message.reply_to_message.location.to_json()
+        response = message.reply_to_message.location.to_json()
     elif response_type == 'contact':
-        response = update.message.reply_to_message.contact.to_json()
+        response = message.reply_to_message.contact.to_json()
     else:
         parse_mode = kwargs.get('mode')
         if parse_mode not in ('HTML', 'Markdown'):
             parse_mode = None
-        response = update.message.reply_to_message.text
+        response = get_message(update).reply_to_message.text
 
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
+    user_id = message.from_user.id
+    username = message.from_user.username
     date_added = localized_date()
     date_modified = localized_date()
 
     if len(pattern) == 0:
         adapter.bot.sendMessage(
-            chat_id=update.message.chat_id, text="❌ Reply pattern is too short.")
+            chat_id=message.chat_id, text="❌ Reply pattern is too short.")
         return
 
     reply = SimpleReply.by_pattern(pattern)
@@ -147,13 +147,13 @@ def on_reply_command(update, *args, **kwargs):
                            date_modified=date_modified)
         if result:
             adapter.bot.sendMessage(
-                chat_id=update.message.chat_id, text="✅ Reply added.")
+                chat_id=message.chat_id, text="✅ Reply added.")
             fetch_replies()
         else:
-            adapter.bot.sendMessage(chat_id=update.message.chat_id,
+            adapter.bot.sendMessage(chat_id=message.chat_id,
                                     text="❌ Unable to add reply.")
     else:
-        adapter.bot.sendMessage(chat_id=update.message.chat_id,
+        adapter.bot.sendMessage(chat_id=message.chat_id,
                                 text="❌ This pattern already exists.")
 
 
