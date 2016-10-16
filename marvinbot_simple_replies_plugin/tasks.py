@@ -1,5 +1,4 @@
-from telegram import Contact, Location
-from marvinbot.utils import localized_date
+from marvinbot.utils import localized_date, get_message, trim_accents
 from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
 from marvinbot_simple_replies_plugin.models import SimpleReply
 import logging
@@ -71,6 +70,7 @@ def on_reply_command(update, *args, **kwargs):
     remove = kwargs.get('remove')
 
     pattern = " ".join(kwargs.get('pattern'))
+    pattern = trim_accents(pattern)
     pattern_type = kwargs.get('type')
     response = None
     mime_type = None
@@ -235,8 +235,8 @@ def find_match(text, callback):
 
 def on_text(update):
     global response_handlers
+    text = trim_accents(get_message(update).text)
     log.info('Text message caught')
-    text = update.message.text
 
     if len(text) == 0:
         log.info('Ignoring text message. Message length is zero')
