@@ -221,7 +221,7 @@ class SimpleRepliesPlugin(Plugin):
         if result:
             self.bot.sendMessage(
                 chat_id=message.chat_id, text="✅ Reply added.")
-            SimpleRepliesPlugin.fetch_replies()
+            self.fetch_replies()
         else:
             self.bot.sendMessage(chat_id=message.chat_id,
                                  text="❌ Unable to add reply.")
