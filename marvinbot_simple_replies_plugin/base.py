@@ -48,6 +48,8 @@ class SimpleRepliesPlugin(Plugin):
     def fetch_replies(self):
         with self.lock:
             self.replies = SimpleReply.all()
+            if self.replies is None:
+                return False
             log.info("Fetched {} replies.".format(len(self.replies)))
 
             for reply in self.replies:
@@ -103,7 +105,7 @@ class SimpleRepliesPlugin(Plugin):
     def find_match(self, text, callback):
         with self.lock:
             for reply in self.replies:
-                matches = (reply.pattern_type == 'exact' and reply.pattern == text) \
+                matches = (reply.pattern_type == 'exact' and reply.pattern == text.lower()) \
                     or (reply.pattern_type == 'regexp' and reply.pattern.match(text)) \
                     or (reply.pattern_type == 'begins_with' and text.startswith(reply.pattern)) \
                     or (reply.pattern_type == 'ends_with' and text.endswith(reply.pattern)) \
@@ -117,7 +119,7 @@ class SimpleRepliesPlugin(Plugin):
         remove = kwargs.get('remove')
 
         pattern = " ".join(kwargs.get('pattern'))
-        pattern = trim_accents(pattern)
+        pattern = trim_accents(pattern).lower()
         pattern_type = kwargs.get('type')
         response = None
         mime_type = None
