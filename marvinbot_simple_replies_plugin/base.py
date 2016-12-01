@@ -1,4 +1,4 @@
-from marvinbot.utils import localized_date, get_message, trim_accents
+from marvinbot.utils import localized_date, get_message, trim_accents, is_user_owner
 from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
 from marvinbot_simple_replies_plugin.models import SimpleReply
 from marvinbot.signals import plugin_reload
@@ -116,6 +116,14 @@ class SimpleRepliesPlugin(Plugin):
     def on_reply_command(self, update, *args, **kwargs):
         log.info('Reply command caught')
         message = get_message(update)
+
+        if not is_user_owner(message.from_user):
+            self.bot.sendMessage(
+                chat_id=message.chat_id,
+                text="❌ You are not allowed to do that.")
+            return
+
+
         remove = kwargs.get('remove')
 
         pattern = " ".join(kwargs.get('pattern'))
