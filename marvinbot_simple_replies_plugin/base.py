@@ -1,6 +1,6 @@
 from marvinbot.utils import localized_date, get_message, trim_accents
 from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
-from marvinbot_simple_replies_plugin.models import SimpleReply
+from marvinbot_simple_replies_plugin.models import SimpleReply, PATTERN_TYPES
 from marvinbot.signals import plugin_reload
 from marvinbot.plugins import Plugin
 from marvinbot.models import User
@@ -32,10 +32,12 @@ class SimpleRepliesPlugin(Plugin):
 
     def setup_handlers(self, adapter):
         self.bot = adapter.bot
+        pattern_types = ', '.join([ x[0] for x in PATTERN_TYPES])
         self.add_handler(CommandHandler('reply', self.on_reply_command, command_description='Allows the user to add or remove replies.')
                          .add_argument('--remove', help='Remove reply', action='store_true')
-                         .add_argument('--type', help='Pattern type', default='exact')
-                         .add_argument('--mode', help='Parse mode (e.g. Markdown)', default='Markdown')
+                         .add_argument('--new-pattern', help='New words or pattern')
+                         .add_argument('--type', help='Pattern type (e.g. {})'.format(pattern_types), default='exact')
+                         .add_argument('--mode', help='Parse mode (e.g. Markdown, HTML)', default='Markdown')
                          .add_argument('pattern', nargs='*', help='Words or pattern that trigger this reply'))
         self.add_handler(MessageHandler([CommonFilters.text], self.on_text), priority=90)
 
@@ -124,11 +126,12 @@ class SimpleRepliesPlugin(Plugin):
             return
 
         remove = kwargs.get('remove')
+        new_pattern = kwargs.get('new_pattern')
 
         pattern = " ".join(kwargs.get('pattern'))
         pattern = trim_accents(pattern).lower()
         pattern_type = kwargs.get('type')
-        response = None
+
         mime_type = None
         file_name = None
         caption = None
@@ -136,14 +139,28 @@ class SimpleRepliesPlugin(Plugin):
 
         if remove:
             if SimpleRepliesPlugin.remove_reply(pattern):
-                self.bot.sendMessage(
-                    chat_id=message.chat_id,
-                    text="🚮 1 reply removed.")
+                self.bot.sendMessage(chat_id=message.chat_id, text="🚮 1 reply removed.")
                 self.fetch_replies()
             else:
                 self.bot.sendMessage(
                     chat_id=message.chat_id,
                     text="❌ No such reply.")
+            return
+
+        if new_pattern:
+            reply = SimpleRepliesPlugin.fetch_reply(pattern)
+            if reply is None:
+                self.bot.sendMessage(chat_id=message.chat_id, text="❌ No such reply..")
+            else:
+                new_pattern = trim_accents(str(new_pattern).strip()).lower()
+                reply.pattern = new_pattern
+                pattern_types = set([ x[0] for x in PATTERN_TYPES ])
+                if pattern_type in pattern_types:
+                    reply.pattern_type = pattern_type
+
+                reply.save()
+                self.fetch_replies()
+                self.bot.sendMessage(chat_id=message.chat_id, text="✅ Reply updated.")
             return
 
         if not message.reply_to_message:
