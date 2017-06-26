@@ -34,11 +34,11 @@ class SimpleRepliesPlugin(Plugin):
         self.bot = adapter.bot
         pattern_types = ', '.join([ x[0] for x in PATTERN_TYPES])
         self.add_handler(CommandHandler('reply', self.on_reply_command, command_description='Allows the user to add or remove replies.')
-                         .add_argument('--remove', help='Remove reply', action='store_true')
-                         .add_argument('--new-pattern', help='New words or pattern')
-                         .add_argument('--type', help='Pattern type (e.g. {})'.format(pattern_types), default='exact')
-                         .add_argument('--mode', help='Parse mode (e.g. Markdown, HTML)', default='Markdown')
-                         .add_argument('pattern', nargs='*', help='Words or pattern that trigger this reply'))
+                         .add_argument('--remove', help='Removes a reply.', action='store_true')
+                         .add_argument('--new-pattern', help='New words or pattern.')
+                         .add_argument('--type', help='Pattern type (e.g. {}).'.format(pattern_types), default='exact')
+                         .add_argument('--mode', help='Parse mode (e.g. Markdown, HTML).', default='Markdown')
+                         .add_argument('pattern', nargs='*', help='Words or pattern that trigger this reply.'))
         self.add_handler(MessageHandler([CommonFilters.text], self.on_text), priority=90)
 
     @plugin_reload.connect
@@ -92,6 +92,8 @@ class SimpleRepliesPlugin(Plugin):
             result = 'sticker'
         elif message.voice:
             result = 'voice'
+        elif message.audio:
+            result = 'audio'
         elif message.document:
             if message.document.mime_type == 'video/mp4':
                 result = 'gif'
@@ -174,13 +176,20 @@ class SimpleRepliesPlugin(Plugin):
         if response_type is None:
             self.bot.sendMessage(
                 chat_id=message.chat_id,
-                text="❌ Media type is not supported")
+                text="❌ Media type is not supported.")
             return
 
         if response_type == 'sticker':
             response = message.reply_to_message.sticker.file_id
         elif response_type == 'voice':
             response = message.reply_to_message.voice.file_id
+        elif response_type == 'audio':
+            mime_type = 'audio/mpeg'
+            mime_type = 'audio/m3u'
+            mime_type = 'audio/ogg'
+            mime_type = 'audio/wav'
+            mime_type = 'audio/m4a'
+            response = message.reply_to_message.audio.file_id
         elif response_type in ('gif', 'file'):
             mime_type = message.reply_to_message.document.mime_type
             response = message.reply_to_message.document.file_id
