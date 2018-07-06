@@ -1,4 +1,4 @@
-from marvinbot.utils import localized_date, get_message, trim_accents
+from marvinbot.utils import localized_date, trim_accents
 from marvinbot.handlers import CommonFilters, CommandHandler, MessageHandler
 from marvinbot_simple_replies_plugin.models import SimpleReply, PATTERN_TYPES
 from marvinbot.signals import plugin_reload
@@ -9,6 +9,7 @@ import logging
 import re
 import threading
 import json
+import os
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class SimpleRepliesPlugin(Plugin):
 
     def setup_handlers(self, adapter):
         self.bot = adapter.bot
-        pattern_types = ', '.join([ x[0] for x in PATTERN_TYPES])
+        pattern_types = ', '.join([x[0] for x in PATTERN_TYPES])
         self.add_handler(CommandHandler('reply', self.on_reply_command, command_description='Allows the user to add or remove replies.')
                          .add_argument('--remove', help='Removes a reply.', action='store_true')
                          .add_argument('--new-pattern', help='New words or pattern.')
@@ -94,7 +95,8 @@ class SimpleRepliesPlugin(Plugin):
             log.info("Fetched {} replies.".format(len(self.replies)))
 
             for reply in self.replies:
-                reply.pattern = re.compile(reply.pattern, flags=re.IGNORECASE) if reply.pattern_type in ['regexp'] else reply.pattern
+                reply.pattern = re.compile(reply.pattern, flags=re.IGNORECASE) if reply.pattern_type in [
+                    'regexp'] else reply.pattern
 
     @classmethod
     def fetch_reply(cls, pattern):
@@ -109,7 +111,8 @@ class SimpleRepliesPlugin(Plugin):
             reply = SimpleReply(**kwargs)
             reply.save()
             return True
-        except:
+        except Exception as ex:
+            log.error(ex)
             return False
 
     @classmethod
@@ -158,7 +161,7 @@ class SimpleRepliesPlugin(Plugin):
 
     def on_reply_command(self, update, *args, **kwargs):
         log.info('Reply command caught')
-        message = get_message(update)
+        message = update.effective_message
 
         if not User.is_user_admin(message.from_user):
             self.bot.sendMessage(chat_id=message.chat_id,
@@ -179,7 +182,8 @@ class SimpleRepliesPlugin(Plugin):
 
         if remove:
             if SimpleRepliesPlugin.remove_reply(pattern):
-                self.bot.sendMessage(chat_id=message.chat_id, text="🚮 1 reply removed.")
+                self.bot.sendMessage(
+                    chat_id=message.chat_id, text="🚮 1 reply removed.")
                 self.fetch_replies()
             else:
                 self.bot.sendMessage(
@@ -190,17 +194,19 @@ class SimpleRepliesPlugin(Plugin):
         if new_pattern:
             reply = SimpleRepliesPlugin.fetch_reply(pattern)
             if reply is None:
-                self.bot.sendMessage(chat_id=message.chat_id, text="❌ No such reply..")
+                self.bot.sendMessage(
+                    chat_id=message.chat_id, text="❌ No such reply..")
             else:
                 new_pattern = trim_accents(str(new_pattern).strip()).lower()
                 reply.pattern = new_pattern
-                pattern_types = set([ x[0] for x in PATTERN_TYPES ])
+                pattern_types = set([x[0] for x in PATTERN_TYPES])
                 if pattern_type in pattern_types:
                     reply.pattern_type = pattern_type
 
                 reply.save()
                 self.fetch_replies()
-                self.bot.sendMessage(chat_id=message.chat_id, text="✅ Reply updated.")
+                self.bot.sendMessage(
+                    chat_id=message.chat_id, text="✅ Reply updated.")
             return
 
         if not message.reply_to_message:
@@ -209,7 +215,8 @@ class SimpleRepliesPlugin(Plugin):
                 text="❌ When adding new replies, use this command while replying.")
             return
 
-        response_type = SimpleRepliesPlugin.get_message_type(message.reply_to_message)
+        response_type = SimpleRepliesPlugin.get_message_type(
+            message.reply_to_message)
 
         if response_type is None:
             self.bot.sendMessage(
@@ -235,7 +242,8 @@ class SimpleRepliesPlugin(Plugin):
         elif response_type == 'photo':
             mime_type = 'image/jpeg'
             response = message.reply_to_message.photo[-1].file_id
-            file_name = "{}.jpg".format(message.reply_to_message.photo[-1].file_id)
+            file_name = "{}.jpg".format(
+                message.reply_to_message.photo[-1].file_id)
             caption = message.reply_to_message.caption
         elif response_type == 'location':
             response = message.reply_to_message.location.to_json()
@@ -245,7 +253,7 @@ class SimpleRepliesPlugin(Plugin):
             parse_mode = kwargs.get('mode')
             if parse_mode not in ('HTML', 'Markdown'):
                 parse_mode = None
-            response = get_message(update).reply_to_message.text
+            response = update.effective_message.reply_to_message.text
 
         user_id = message.from_user.id
         username = message.from_user.username
@@ -300,7 +308,7 @@ class SimpleRepliesPlugin(Plugin):
                                  text="❌ Unable to add reply.")
 
     def on_text(self, update):
-        text = trim_accents(get_message(update).text)
+        text = trim_accents(update.effective_message.text)
 
         if len(text) == 0:
             log.info('Ignoring text message. Message length is zero')
