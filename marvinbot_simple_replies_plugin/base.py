@@ -39,7 +39,45 @@ class SimpleRepliesPlugin(Plugin):
                          .add_argument('--type', help='Pattern type (e.g. {}).'.format(pattern_types), default='exact')
                          .add_argument('--mode', help='Parse mode (e.g. Markdown, HTML).', default='Markdown')
                          .add_argument('pattern', nargs='*', help='Words or pattern that trigger this reply.'))
-        self.add_handler(MessageHandler([CommonFilters.text], self.on_text), priority=90)
+        self.add_handler(MessageHandler(
+            [CommonFilters.text], self.on_text), priority=90)
+        self.add_handler(CommandHandler(
+            'restore_patterns', self.on_restore_command, command_description='Restore json'))
+
+    def on_restore_command(self, update):
+        message = update.effective_message
+
+        if not User.is_user_admin(message.from_user):
+            message.reply_text(text="❌ You are not allowed to do that.")
+            return
+
+        dump = {}
+        if os.path.exists('random.json'):
+            with open('random.json', 'r') as f:
+                dump.update(json.load(f)[2])
+
+            pattern_type = 'exact'
+
+            count = 0
+            for data in dump.get('data'):
+                result = SimpleRepliesPlugin.add_reply(
+                    user_id=data.get('user_id'),
+                    username=data.get('username'),
+                    pattern=data.get('pattern'),
+                    pattern_type=pattern_type,
+                    response=data.get('response'),
+                    response_type=data.get('type'),
+                    caption=data.get('caption'),
+                    parse_mode=data.get('parse_mode', 'Markdown' if data.get('type') == 'text' else None))
+                if result:
+                    count = count+1
+                else:
+                    log.error('Unable add reply: {}'.format(json.dumps(data)))
+
+            self.fetch_replies()
+            message.reply_text(text='✅ {} replies added.'.format(count))
+        else:
+            message.reply_text(text='❌ Unable to load file.')
 
     @plugin_reload.connect
     def reload(self, sender, update):

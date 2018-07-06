@@ -21,18 +21,18 @@ RESPONSE_TYPES = (('text', 'Text'),
 
 class SimpleReply(mongoengine.Document):
     id = mongoengine.SequenceField(primary_key=True)
-    pattern = mongoengine.StringField(unique=True)
+    pattern = mongoengine.StringField(unique=True, required=True)
     pattern_type = mongoengine.StringField(
-        choices=PATTERN_TYPES, default='exact', required=True)
+        choices=PATTERN_TYPES, default='exact')
     response = mongoengine.StringField(required=True)
     response_type = mongoengine.StringField(
         choices=RESPONSE_TYPES, default="text", required=True)
     mime_type = mongoengine.StringField(required=False)
     file_name = mongoengine.StringField(required=False)
-    caption = mongoengine.StringField(required=False)
-    parse_mode = mongoengine.StringField(required=False)
-    user_id = mongoengine.LongField(required=True)
-    username = mongoengine.StringField(required=True)
+    caption = mongoengine.StringField(required=False, null=True)
+    parse_mode = mongoengine.StringField(required=False, null=True)
+    user_id = mongoengine.LongField(required=False, null=True)
+    username = mongoengine.StringField(required=False, null=True)
 
     date_added = mongoengine.DateTimeField(default=localized_date)
     date_modified = mongoengine.DateTimeField(default=localized_date)
