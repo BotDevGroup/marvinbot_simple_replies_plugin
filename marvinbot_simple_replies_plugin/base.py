@@ -319,40 +319,40 @@ class SimpleRepliesPlugin(Plugin):
             return
 
         def handle_text_response(update, reply):
-            self.bot.sendMessage(chat_id=update.message.chat_id,
+            self.bot.sendMessage(chat_id=update.effective_message.chat_id,
                                  text=reply.response)
 
         def handle_photo_response(update, reply):
-            self.bot.sendPhoto(chat_id=update.message.chat_id,
+            self.bot.sendPhoto(chat_id=update.effective_message.chat_id,
                                photo=reply.response,
                                caption=reply.caption)
 
         def handle_sticker_response(update, reply):
-            self.bot.sendSticker(chat_id=update.message.chat_id,
+            self.bot.sendSticker(chat_id=update.effective_message.chat_id,
                                  sticker=reply.response)
 
         def handle_document_response(update, reply):
-            self.bot.sendDocument(chat_id=update.message.chat_id,
+            self.bot.sendDocument(chat_id=update.effective_message.chat_id,
                                   document=reply.response)
 
         def handle_audio_response(update, reply):
-            self.bot.sendAudio(chat_id=update.message.chat_id,
+            self.bot.sendAudio(chat_id=update.effective_message.chat_id,
                                audio=reply.response)
 
         def handle_video_response(update, reply):
-            self.bot.sendVideo(chat_id=update.message.chat_id,
+            self.bot.sendVideo(chat_id=update.effective_message.chat_id,
                                video=reply.response)
 
         def handle_voice_response(update, reply):
-            self.bot.sendVoice(chat_id=update.message.chat_id,
+            self.bot.sendVoice(chat_id=update.effective_message.chat_id,
                                voice=reply.response)
 
         def handle_json_response(update, reply):
             data = json.loads(reply.response)
-            self.bot.sendContact(chat_id=update.message.chat_id, **data)
+            self.bot.sendContact(chat_id=update.effective_message.chat_id, **data)
 
         def handle_unknown_response(update, reply):
-            self.bot.sendMessage(chat_id=update.message.chat_id,
+            self.bot.sendMessage(chat_id=update.effective_message.chat_id,
                                  text="❌ Invalid response type '{response_type}' for '{pattern}'".format(pattern=reply.pattern, response_type=reply.response_type))
 
         response_handlers = {
