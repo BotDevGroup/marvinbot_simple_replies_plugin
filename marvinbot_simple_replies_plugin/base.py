@@ -238,6 +238,8 @@ class SimpleRepliesPlugin(Plugin):
             response = message.reply_to_message.sticker.file_id
         elif response_type == 'voice':
             response = message.reply_to_message.voice.file_id
+        elif response_type == 'video':
+            response = message.reply_to_message.video.file_id
         elif response_type == 'audio':
             mime_type = message.reply_to_message.audio.mime_type
             response = message.reply_to_message.audio.file_id
