@@ -137,6 +137,8 @@ class SimpleRepliesPlugin(Plugin):
         result = None
         if message.photo:
             result = 'photo'
+        elif message.video:
+            result = 'video'
         elif message.sticker:
             result = 'sticker'
         elif message.voice:
