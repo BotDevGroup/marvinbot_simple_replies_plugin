@@ -337,7 +337,7 @@ class SimpleRepliesPlugin(Plugin):
 
         def handle_document_response(update, reply):
             self.bot.sendDocument(chat_id=update.effective_message.chat_id,
-                                  document=reply.response)
+                                  document=reply.response, timeout=60)
 
         def handle_audio_response(update, reply):
             self.bot.sendAudio(chat_id=update.effective_message.chat_id,
