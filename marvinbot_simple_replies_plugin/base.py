@@ -374,6 +374,10 @@ class SimpleRepliesPlugin(Plugin):
 
         def on_match(text, reply):
             response_handler = response_handlers[reply.response_type] if reply.response_type in response_handlers else handle_unknown_response
-            response_handler(update, reply)
+            try:
+              response_handler(update, reply)
+            except Exception as ex:
+              log.error('Unable to send reply for {text}: {reply}'.format(text=text, reply=reply))
+              log.error(ex)
 
         self.find_match(text, on_match)
